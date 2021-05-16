@@ -1,0 +1,35 @@
+#!/bin/bash
+
+IP_MSG="$(curl --no-progress-meter http://ifconfig.io 2>&1)"
+STATUS=$?
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+echo $SCRIPT_DIR
+F_HANDLE="$SCRIPT_DIR/last_known.ip"
+echo $F_HANDLE
+
+
+
+echo -f $F_HANDLE
+if [ $(test -f $F_HANDLE)]; then
+    LAST_KNOWN=$(<$F_HANDLE)
+else
+	if [ $STATUS =  1 ]; then
+		zenity --notification --window-icon="process-stop" --text "Not connected to internet"
+	else
+		echo "$IP_MSG" >> $F_HANDLE
+		LAST_KNOWN=$(<$F_HANDLE)
+		zenity --notifcation --window-icon="process-stop" --text "Set new file and contents to $SCRIPT_DIR/last_known.ip"
+	fi
+fi
+
+if [ $STATUS = 1 ]; then
+    zenity --notification --window-icon="process-stop" --text "Error Occurred While Attempting to Connect to ifconfig.io for IP Verification"
+else
+	if [[ "$LAST_KNOWN" = "$IP_MSG" ]]; then
+		MESSAGE="IP UNCHANGED LAST 300 SECONDS"
+		zenity --notification --window-icon="process-working" --text "$MESSAGE"
+	else
+		MESSAGE="There was a discrepency in external IP, $LAST_KNOWN, $IP_MESSAGE"
+		zenity --notification --window-icon="process-stop" --text "$MESSAGE"
+	fi
+fi
